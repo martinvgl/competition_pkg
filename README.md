@@ -319,4 +319,8 @@ competition_pkg/
 
 ---
 
-*Tamukoh Laboratory — Division of Human Intelligence and Machines — Kyutech*
+*Lab collaboration — Kyutech*
+
+
+* FOG parkinson's disease *
+* Shibata Lab *
