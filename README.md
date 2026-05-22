@@ -2,7 +2,7 @@
 
 ## Test ready version ##
 
-This version has been tester on the turtlebot sucessfuly. Files can be added to this version to test features.
+This version has been tester on the turtlebot successfully. Files can be added to this version to test features.
 
 ## Architecture ##
 
