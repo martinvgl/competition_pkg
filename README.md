@@ -1,11 +1,11 @@
-# 🤖 Evacuation Robot — competition_pkg
+# Evacuation Robot — competition_pkg
 
 > Practicum in Robot Operating System (ROS) — Tamukoh Laboratory, Kyutech  
 > TurtleBot3 · ROS 2 · Nav2 · YASMIN · OpenCV
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
 - [Architecture](#architecture)
@@ -117,7 +117,7 @@ ssh ubuntu@<ROBOT_IP>
 
 ## Step 2 — Mapping
 
-> ⚠️ Do this **once** before running the robot. The map must be obstacle-free.
+> Do this **once** before running the robot. The map must be obstacle-free.
 
 ### Launch the virtual environment (required by the lab)
 
@@ -155,7 +155,7 @@ ros2 run turtlebot3_teleop teleop_keyboard
 | `d` | Turn right |
 | `s` | Stop |
 
-> 💡 **Tips:** Go slowly (max 0.1 m/s). Cover the entire patrol area. Do at least 2 full loops for a clean map.
+> **Tips:** Go slowly (max 0.1 m/s). Cover the entire patrol area. Do at least 2 full loops for a clean map.
 
 ### Save the map
 
