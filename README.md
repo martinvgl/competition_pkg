@@ -1,11 +1,16 @@
-# Evacuation Robot #
+# Evacuation Robot
 
-## Test ready version ##
+## Test Ready Version
 
-This version has been tester on the turtlebot successfully. Files can be added to this version to test features.
+This version has been tested on the TurtleBot successfully. Files can be added to this version to test features.
 
-## Architecture ##
+---
 
+## Architecture
+
+### Detection Flow
+
+\```
 SEARCHES environment
     ↓
 Avoids RED obstacles
@@ -19,11 +24,11 @@ Stops
 Checks lying/standing
     ↓
 Navigates to evacuation point
+\```
 
+### Mission Flow
 
-
-
-
+\```
 MISSION START
       ↓
 Search for GREEN exit marker
@@ -37,94 +42,101 @@ While moving:
 If PERSON found:
     • Mark location
     • Continue mission
-
 If RED found:
     • Avoid obstacle
     • Continue mission
-
 If GREEN reached:
     • Scan surroundings
     • Find next GREEN
     • Continue mission
       ↓
 Repeat until final exit
+\```
 
+---
 
+## Setup
+
+### Environment
+
+\```bash
 cd ~/ros2_lecture_ws
 . 0_env.sh
 Singularity> . /entrypoint.sh
 colcon build --symlink-install
 source install/setup.bash
+\```
 
+### Install Dependencies
 
-Install OpenCV:
-
+\```bash
+# Install OpenCV
 sudo apt update
 sudo apt install python3-opencv
 
-Install cv_bridge:
-
+# Install cv_bridge
 sudo apt install ros-humble-cv-bridge
 
-Install navigation packages:
-
+# Install navigation packages
 sudo apt install ros-humble-cv-bridge
 
-Install SLAM toolbox:
-
+# Install SLAM toolbox
 sudo apt install ros-humble-slam-toolbox
-5. BUILD WORKSPACE
+\```
+
+### 5. Build Workspace
+
+\```bash
 cd ~/ros2_ws
-
 colcon build --symlink-install
-
 source install/setup.bash
-6. RUN COMMANDS
-TERMINAL 1
+\```
 
-Start TurtleBot:
+---
 
+## 6. Run Commands
+
+### Terminal 1 — Start TurtleBot
+\```bash
 ros2 launch turtlebot3_bringup robot.launch.py
-TERMINAL 2
+\```
 
-Start camera:
-
+### Terminal 2 — Start Camera
+\```bash
 ros2 run your_package fake_robot
+# OR actual camera node
+\```
 
-OR actual camera node.
-
-TERMINAL 3
-
-Run SLAM:
-
+### Terminal 3 — Run SLAM
+\```bash
 ros2 launch slam_toolbox online_async_launch.py
-TERMINAL 4
+\```
 
-Run Navigation2:
-
+### Terminal 4 — Run Navigation2
+\```bash
 ros2 launch nav2_bringup navigation_launch.py
-TERMINAL 5
+\```
 
-Run your state machine:
-
+### Terminal 5 — Run State Machine
+\```bash
 ros2 run your_package sm_main
-7. VIEW CAMERA DEBUG
+\```
+
+---
+
+## 7. View Camera Debug
+
+\```bash
 rqt_image_view
+\```
 
-Select:
+Select `/debug_image`. You will see:
+- Person boxes
+- Lying person label
+- Detection visualization
 
-/debug_image
+---
 
-You will see:
-
-Person boxes
-Lying person label
-Detection visualization
-
-
-
-
-
-Person Detection → OpenCV HOG Detector
+## Person Detection → OpenCV HOG Detector
 
 This is a machine-learning-based detector, although it's an older classical method rather than a deep neural network.
