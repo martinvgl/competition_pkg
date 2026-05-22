@@ -9,6 +9,10 @@ PatrolState — navigation autonome sur une liste de waypoints.
 Utilise l'action NavigateToPose de Nav2.
 Structure identique à navigation.py du package d'exemple du labo.
 
+eng:
+
+PatrolState: autonomous navigation on a waypoint list
+
 Outcomes :
   "detected" → un obstacle proche détecté par le LiDAR (possible intrus)
   "patrol"   → waypoint atteint, continuer la patrouille
