@@ -1,7 +1,7 @@
-# Evacuation Robot — competition_pkg
+# Emergency Evacuation Robot — competition_pkg
 
-> Practicum in Robot Operating System (ROS) — Tamukoh Laboratory, Kyutech  
-> TurtleBot3 · ROS 2 · Nav2 · YASMIN · OpenCV
+> Practicum in Robot Operating System (ROS) — Tamukoh Laboratory, Kyutech
+> TurtleBot3 · ROS 2 · Nav2 · YASMIN
 
 ---
 
@@ -22,43 +22,67 @@
 
 ## Overview
 
-This robot patrols autonomously in a known environment.  
+This robot patrols autonomously in a known environment and detects geometric changes in real time by comparing live LiDAR scans against a pre-built reference map. When a new obstacle is detected — for example, debris from a disaster — the robot stops, performs a 360° scan to map the obstacle completely, then resumes patrol with an updated dynamic map.
 
+**Current scope (this module):** real-time map updating + patrol with obstacle-triggered scanning. Other features of the global Emergency Evacuation Robot system (person detection, color path semantics, survivor guidance) are developed in parallel by other team members.
 
 ### State Machine
 
+```
+        ┌─────────┐   patrol    ┌─────────┐
+        │  PATROL │────────────►│  PATROL │  (next waypoint)
+        └─────────┘             └─────────┘
+             │
+             │ detected (/new_obstacle received)
+             ▼
+        ┌─────────┐
+        │ MAPPING │  ← stops, rotates 360°, lets the mapper
+        └─────────┘    capture the full obstacle
+             │
+             │ mapped
+             ▼
+        (back to PATROL)
+```
 
+---
 
 ## Architecture
 
-
 For the dynamic map:
+
 ```
-/map   (reference) ──┐
-/scan  (LiDAR)     ──┼──► obstacle_mapper_node ──► /updated_map
-/odom  (position)  ──┘                         └──► /new_obstacle
-                                                         │
-                                                    patrol.py
-                                                    (triggers Mapping state)
+/map   (reference)   ──┐
+/scan  (LiDAR)       ──┼──► obstacle_mapper_node ──► /updated_map
+/odom  (position)    ──┘                          └──► /new_obstacle
+                                                            │
+                                                            ▼
+                                                       patrol.py
+                                                  (triggers MAPPING state)
 ```
+
+### How the dynamic map works
+
+1. At startup, `obstacle_mapper_node` receives the reference map on `/map` once and keeps an in-memory copy as the dynamic map.
+2. At every LiDAR scan, each ray is projected into map coordinates using the robot's pose.
+3. If the projected point lands on a cell that was **free** in the reference map but is now hit by the LiDAR, the cell is marked as an obstacle (value `100`) in the dynamic map.
+4. The dynamic map is republished on `/updated_map` at 1 Hz — RViz and other subscribers see the updates live.
+5. A spatial anti-duplicate filter (15 cm radius) prevents the same obstacle from triggering multiple alerts on `/new_obstacle`.
 
 ### Nodes & Topics
 
-#### Dynamic Map ####
 | Node | Executable | Role |
 |---|---|---|
-| `guard_robot_main` | `guard_robot` | State machine (YASMIN) |
-| `obstacle_mapper_node` | `obstacle_mapper` | Dynamic map update |
+| `guard_robot_main` | `guard_robot` | State machine (YASMIN) — patrol + mapping |
+| `obstacle_mapper_node` | `obstacle_mapper` | Dynamic map update from LiDAR vs reference |
 
-| Topic | Type | Description |
-|---|---|---|
-| `/map` | `OccupancyGrid` | Reference map (fixed) |
-| `/updated_map` | `OccupancyGrid` | Dynamic map with new obstacles |
-| `/new_obstacle` | `String` | Alert with obstacle position |
-| `/scan` | `LaserScan` | LiDAR data |
-| `/cmd_vel` | `Twist` | Robot velocity commands |
-| `/alert` | `String` | General alert messages |
-| `/buzzer` | `Bool` | Buzzer command (OpenCR) |
+| Topic | Type | Direction | Description |
+|---|---|---|---|
+| `/map` | `nav_msgs/OccupancyGrid` | in | Reference map (fixed, from map_server) |
+| `/scan` | `sensor_msgs/LaserScan` | in | LiDAR data |
+| `/odom` | `nav_msgs/Odometry` | in | Robot position |
+| `/updated_map` | `nav_msgs/OccupancyGrid` | out | Dynamic map with new obstacles |
+| `/new_obstacle` | `std_msgs/String` | out | Alert with obstacle position |
+| `/cmd_vel` | `geometry_msgs/Twist` | out | Robot velocity commands (rotation in MAPPING state) |
 
 ---
 
@@ -68,9 +92,7 @@ For the dynamic map:
 - TurtleBot3 Burger
 - Nav2
 - YASMIN (`pip install yasmin`)
-- OpenCV (`pip install opencv-python`)
-- cv_bridge
-- tf_transformations
+- `tf_transformations`
 
 ---
 
@@ -96,12 +118,12 @@ source install/setup.bash
 Run these commands **on both the Remote PC and the Raspberry Pi** before anything else.
 
 ```bash
-# Set ROS domain (same value on both machines)
 export ROS_DOMAIN_ID=30
 export TURTLEBOT3_MODEL=burger
 ```
 
 To make it permanent, add to `~/.bashrc`:
+
 ```bash
 echo "export ROS_DOMAIN_ID=30" >> ~/.bashrc
 echo "export TURTLEBOT3_MODEL=burger" >> ~/.bashrc
@@ -109,6 +131,7 @@ source ~/.bashrc
 ```
 
 **Connect to the robot via SSH:**
+
 ```bash
 ssh ubuntu@<ROBOT_IP>
 ```
@@ -117,7 +140,7 @@ ssh ubuntu@<ROBOT_IP>
 
 ## Step 2 — Mapping
 
-> Do this **once** before running the robot. The map must be obstacle-free.
+> Do this **once** before running the robot. The map must be obstacle-free (no debris that you'll later use to trigger detection).
 
 ### Launch the virtual environment (required by the lab)
 
@@ -139,7 +162,7 @@ ros2 launch turtlebot3_bringup robot.launch.py
 ros2 launch turtlebot3_cartographer cartographer.launch.py
 ```
 
-RViz opens automatically. You will see the map being built in real time.
+RViz opens automatically — you'll see the map being built in real time.
 
 ### On the Remote PC — teleoperate to build the map
 
@@ -155,7 +178,7 @@ ros2 run turtlebot3_teleop teleop_keyboard
 | `d` | Turn right |
 | `s` | Stop |
 
-> **Tips:** Go slowly (max 0.1 m/s). Cover the entire patrol area. Do at least 2 full loops for a clean map.
+> **Tips:** Go slowly (max 0.1 m/s). Cover the entire patrol area. At least 2 full loops give a clean map.
 
 ### Save the map
 
@@ -177,7 +200,15 @@ Teleoperate the robot to each patrol corner and note the coordinates:
 ros2 topic echo /odom --once
 ```
 
-Note `pose.pose.position.x` and `pose.pose.position.y`, then update the `WAYPOINTS` list in `competition_pkg/states/patrol.py`.
+Note `pose.pose.position.x` and `pose.pose.position.y`, then update the `WAYPOINTS` list at the top of `competition_pkg/states/patrol.py`:
+
+```python
+WAYPOINTS = [
+    {"x": 0.0, "y": 0.0,  "yaw": 0.0},
+    {"x": 2.0, "y": 0.0,  "yaw": 1.5708},
+    # ...
+]
+```
 
 ---
 
@@ -196,10 +227,10 @@ ros2 launch competition_pkg guard_robot.launch.py
 ```
 
 This launches automatically:
-- `turtlebot3_navigation2` with the saved map
-- `yasmin_viewer_node` (state machine visualizer)
-- `obstacle_mapper_node` (dynamic map)
-- `guard_robot_main` (state machine)
+- `turtlebot3_navigation2` with the saved map (AMCL + Nav2)
+- `yasmin_viewer_node` — state machine visualizer (browser at `http://localhost:5000`)
+- `obstacle_mapper_node` — dynamic map publisher
+- `guard_robot_main` — state machine entry point
 
 **Press Enter in the terminal to start the robot.**
 
@@ -216,20 +247,17 @@ ros2 launch competition_pkg guard_robot.launch.py map:=/path/to/your/map.yaml
 ### Monitor the robot
 
 ```bash
-# Current state machine state
-ros2 topic echo /state
-
-# New obstacle alerts
+# New obstacle alerts (text)
 ros2 topic echo /new_obstacle
-
-# General alerts
-ros2 topic echo /alert
 
 # LiDAR data
 ros2 topic echo /scan
 
 # Robot position
 ros2 topic echo /odom --once
+
+# Dynamic map metadata
+ros2 topic echo /updated_map --field info.width --field info.height
 ```
 
 ### Visualize in RViz
@@ -238,31 +266,24 @@ ros2 topic echo /odom --once
 ros2 run rviz2 rviz2
 ```
 
-Add these displays in RViz:
+Suggested displays:
 - `Map` → topic `/map` (reference, grey)
-- `Map` → topic `/updated_map` (dynamic, shows new obstacles in black)
+- `Map` → topic `/updated_map` (dynamic, new obstacles in black) — set a different color scheme to distinguish from reference
 - `LaserScan` → topic `/scan`
 - `RobotModel`
+- `TF`
 
-### View camera feed
+### View the state machine
 
-```bash
-ros2 run rqt_image_view rqt_image_view /detection_image
-```
+Open your browser at: `http://localhost:5000` (YASMIN Viewer). Set Layout to "grid".
 
-### View state machine (YASMIN Viewer)
-
-Open your browser at: `http://localhost:5000`
-
-### Manually trigger a detection (for testing)
+### Manually trigger a detection (for testing without a physical obstacle)
 
 ```bash
-# Simulate a new obstacle alert
 ros2 topic pub --once /new_obstacle std_msgs/String "data: '[TEST] x=1.0, y=1.0'"
-
-# Simulate a person detection
-ros2 topic pub --once /detection_status std_msgs/String "data: 'person'"
 ```
+
+The state machine should transition `PATROL → MAPPING` and the robot should rotate 360°.
 
 ### Build after changes
 
@@ -272,18 +293,14 @@ colcon build --symlink-install --packages-select competition_pkg
 source install/setup.bash
 ```
 
-> 💡 With `--symlink-install`, Python file changes are applied immediately without rebuilding.
+> With `--symlink-install`, Python file changes are applied immediately without rebuilding.
 
-### Check topic list
+### Inspect ROS graph
 
 ```bash
 ros2 topic list
-```
-
-### Check node list
-
-```bash
 ros2 node list
+rqt_graph
 ```
 
 ---
@@ -293,15 +310,11 @@ ros2 node list
 ```
 competition_pkg/
 ├── competition_pkg/
-│   ├── guard_robot_main.py       # Main node — YASMIN state machine
+│   ├── guard_robot_main.py       # YASMIN state machine entry point
 │   ├── obstacle_mapper_node.py   # Dynamic map update (LiDAR vs reference)
 │   └── states/
 │       ├── patrol.py             # Autonomous waypoint navigation
-│       ├── mapping.py            # 360° scan on new obstacle
-│       ├── detection.py          # Person detection (HOG / OpenCV)
-│       ├── alert.py              # Buzzer + alert publication
-│       ├── track.py              # Visual tracking of detected person
-│       └── return_base.py        # Return to base (NavigateToPose)
+│       └── mapping.py            # 360° scan triggered by /new_obstacle
 ├── launch/
 │   └── guard_robot.launch.py     # Main launch file
 ├── setup.py                      # Package configuration
@@ -311,16 +324,20 @@ competition_pkg/
 
 ---
 
-## Team
+## Known Limitations
 
-| Member | Role | File |
-|---|---|---|
-
+- The dynamic map is **cumulative**: a cell marked as obstacle stays marked, even if the obstacle is physically removed during the mission. This matches the post-disaster scenario (debris doesn't vanish).
+- Robot pose comes from `/odom` (wheel odometry). On short patrols this is reliable; on longer runs, switching to `/amcl_pose` would reduce drift.
+- The `MAPPING` state rotates for ~21 s at 0.3 rad/s — adjust angular velocity in `mapping.py` if needed.
 
 ---
 
-*Lab collaboration — Kyutech*
+## Team
 
+| Member | Role | Files |
+|---|---|---|
+| TBD | Real-time mapping + patrol SM | `obstacle_mapper_node.py`, `patrol.py`, `mapping.py` |
 
-* FOG parkinson's disease *
-* Shibata Lab *
+---
+
+*Lab collaboration — Kyutech · Tamukoh Laboratory*
