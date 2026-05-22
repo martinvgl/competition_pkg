@@ -8,8 +8,12 @@ Author: Kyutech ROS Group
 MappingState — le robot s'arrête, tourne sur lui-même pour scanner
 l'obstacle complet, puis met à jour la carte dynamique.
 
+eng: MappingState - the robot stop, turn on itself to scan the full obstacle, update the map
+
 Outcomes :
   "mapped"  → obstacle scanné et ajouté à la carte dynamique
+
+  eng: "mapped" → obstacle scanned and added to the dynamic map
 """
 
 # Import external modules
