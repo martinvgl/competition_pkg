@@ -10,7 +10,7 @@ This version has been tested on the TurtleBot successfully. Files can be added t
 
 ### Detection Flow
 
-\```
+```
 SEARCHES environment
     ↓
 Avoids RED obstacles
@@ -24,11 +24,11 @@ Stops
 Checks lying/standing
     ↓
 Navigates to evacuation point
-\```
+```
 
 ### Mission Flow
 
-\```
+```
 MISSION START
       ↓
 Search for GREEN exit marker
@@ -51,7 +51,7 @@ If GREEN reached:
     • Continue mission
       ↓
 Repeat until final exit
-\```
+```
 
 ---
 
@@ -59,17 +59,17 @@ Repeat until final exit
 
 ### Environment
 
-\```bash
+```bash
 cd ~/ros2_lecture_ws
 . 0_env.sh
 Singularity> . /entrypoint.sh
 colcon build --symlink-install
 source install/setup.bash
-\```
+```
 
 ### Install Dependencies
 
-\```bash
+```bash
 # Install OpenCV
 sudo apt update
 sudo apt install python3-opencv
@@ -82,53 +82,53 @@ sudo apt install ros-humble-cv-bridge
 
 # Install SLAM toolbox
 sudo apt install ros-humble-slam-toolbox
-\```
+```
 
 ### 5. Build Workspace
 
-\```bash
+```bash
 cd ~/ros2_ws
 colcon build --symlink-install
 source install/setup.bash
-\```
+```
 
 ---
 
 ## 6. Run Commands
 
 ### Terminal 1 — Start TurtleBot
-\```bash
+```bash
 ros2 launch turtlebot3_bringup robot.launch.py
-\```
+```
 
 ### Terminal 2 — Start Camera
-\```bash
+```bash
 ros2 run your_package fake_robot
 # OR actual camera node
-\```
+```
 
 ### Terminal 3 — Run SLAM
-\```bash
+```bash
 ros2 launch slam_toolbox online_async_launch.py
-\```
+```
 
 ### Terminal 4 — Run Navigation2
-\```bash
+```bash
 ros2 launch nav2_bringup navigation_launch.py
-\```
+```
 
 ### Terminal 5 — Run State Machine
-\```bash
+```bash
 ros2 run your_package sm_main
-\```
+```
 
 ---
 
 ## 7. View Camera Debug
 
-\```bash
+```bash
 rqt_image_view
-\```
+```
 
 Select `/debug_image`. You will see:
 - Person boxes
