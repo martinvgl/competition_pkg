@@ -8,13 +8,20 @@ Author: Kyutech ROS Group
 Nœud autonome qui compare les données LiDAR avec la carte de référence
 et publie une carte dynamique mise à jour avec les nouveaux obstacles.
 
+eng: compare reference map and actual environment, and spot new obstacles.
+
 Logique :
-  - Carte de référence (/map) : chargée une fois au démarrage
-  - LiDAR (/scan)             : écouté en continu
-  - Position (/odom)          : pour convertir les points LiDAR en coordonnées carte
+  - Carte de référence (/map) : chargée une fois au démarrage  - reference map
+  - LiDAR (/scan)             : écouté en continu  - continuous listening
+  - Position (/odom)          : pour convertir les points LiDAR en coordonnées carte  - LiDAR point to map coordinates
   → Si un point LiDAR tombe sur une cellule LIBRE dans la référence
     → marquer comme OBSTACLE dans la carte dynamique
   → Publier la carte dynamique sur /updated_map
+
+  eng: 
+  → if a LiDAR point correspond to a FREE cell from the reference, 
+    → write as OBSTACLE
+  → Publish the map on /updated_map
 
 Topics :
   Subscriptions :
