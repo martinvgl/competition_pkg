@@ -23,27 +23,16 @@
 ## Overview
 
 This robot patrols autonomously in a known environment.  
-When a new obstacle appears (e.g. a person or object blocking a path), the robot:
 
-1. Detects it via the **LiDAR** (LRF)
-2. Stops and performs a **360° scan** to map the obstacle
-3. Triggers an **alert** (buzzer + log)
-4. Checks for a **person** with the camera (HOG detection)
-5. Updates the **dynamic map** in real time on `/updated_map`
-6. Resumes **patrol**
 
 ### State Machine
 
-```
-Patrol ──(obstacle)──► Mapping ──(mapped)──► Alert ──► Detection
-  ▲                                                        │
-  └──────────────────(clear / lost / timeout)─────────────┘
-```
 
----
 
 ## Architecture
 
+
+For the dynamic map:
 ```
 /map   (reference) ──┐
 /scan  (LiDAR)     ──┼──► obstacle_mapper_node ──► /updated_map
@@ -55,6 +44,7 @@ Patrol ──(obstacle)──► Mapping ──(mapped)──► Alert ──►
 
 ### Nodes & Topics
 
+#### Dynamic Map ####
 | Node | Executable | Role |
 |---|---|---|
 | `guard_robot_main` | `guard_robot` | State machine (YASMIN) |
@@ -325,11 +315,7 @@ competition_pkg/
 
 | Member | Role | File |
 |---|---|---|
-| M1 | Leader / PM | Architecture, coordination |
-| M2 | Navigation | `patrol.py`, `return_base.py` |
-| M3 | Vision | `detection.py`, `track.py` |
-| M4 | State Machine | `guard_robot_main.py`, `alert.py`, `mapping.py` |
-| M5 | Dynamic Map | `obstacle_mapper_node.py`, `patrol.py` (obstacle trigger) |
+
 
 ---
 
