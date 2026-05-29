@@ -3,6 +3,8 @@
 > Practicum in Robot Operating System (ROS) — Kyutech
 > TurtleBot3 · ROS 2 · Nav2 · YASMIN
 
+## TO BE TESTED ##
+
 This module implements the **real-time map updating** feature of the Emergency Evacuation Robot project: the robot patrols a known environment and detects geometric changes (new obstacles, debris) by comparing live LiDAR scans against a pre-built reference map. When a change is detected, the robot stops, rotates 360° to scan the obstacle in full, then resumes patrol.
 
 Other features of the global project (person detection, color path semantics, survivor guidance) are developed in parallel by other team members and not covered by this module.
