@@ -2,7 +2,7 @@
 
 ## Test Ready Version
 
-This version has been tested on the TurtleBot successfully. Files can be added to this version to test features.
+This version has NOT been tested on the TurtleBot successfully. Files can be added to this version to test features.
 
 ---
 
