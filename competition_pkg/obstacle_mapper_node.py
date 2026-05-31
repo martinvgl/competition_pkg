@@ -140,6 +140,20 @@ class ObstacleMapperNode(Node):
             LaserScan, "/scan", self.scan_cb, 10)
         self.create_subscription(
             Odometry, "/odom", self.odom_cb, 10)
+        
+         # Sensor topics (/scan, /odom) are published BEST_EFFORT, so the
+        # subscriptions must match or no messages are received.
+        sensor_qos = QoSProfile(depth=10)
+        sensor_qos.history = QoSHistoryPolicy.KEEP_LAST
+        sensor_qos.reliability = QoSReliabilityPolicy.BEST_EFFORT
+        sensor_qos.durability = QoSDurabilityPolicy.VOLATILE
+
+        self.create_subscription(
+            OccupancyGrid, "/map", self.map_cb, map_qos)
+        self.create_subscription(
+            LaserScan, "/scan", self.scan_cb, sensor_qos)
+        self.create_subscription(
+            Odometry, "/odom", self.odom_cb, sensor_qos)
 
         # =====================================================
         # PUBLISHERS
