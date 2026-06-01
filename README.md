@@ -1,163 +1,36 @@
-# Evacuation Robot
+# competition_pkg
 
-## Test Ready Version
+Autonomous evacuation/rescue robot for the TurtleBot3, built on a YASMIN state
+machine, with an added **dynamic obstacle map** feature.
 
-This version has been tested on the TurtleBot successfully. Files can be added to this version to test features.
+The robot explores the environment with its camera, looks for a person, and
+navigates to the evacuation point. In parallel, a dedicated node compares the
+live LiDAR against a pre-built reference map and flags obstacles that were not
+there during mapping.
 
----
+## Nodes
 
-## Architecture
+- **`sm`** — the mission state machine (`Follow` -> `Navigation`). `Follow`
+  uses the camera to search the environment (person / green exit / red
+  obstacle) and stops on a person; `Navigation` sends a Nav2 goal to the
+  evacuation point.
+- **`fakerobot`** — a camera stub used for testing without the real robot. It
+  publishes a dummy image on `image_raw` and prints the `cmd_vel` it receives.
+  With the stub, no real detection happens (the image is blank).
+- **`obstacle_mapper`** — the dynamic obstacle map. A standalone node that runs
+  alongside the state machine and only observes: it never sends motion commands.
 
-### Detection Flow
+## Dynamic obstacle map
 
-```
-SEARCHES environment
-    ↓
-Avoids RED obstacles
-    ↓
-Moves toward GREEN exit
-    ↓
-Detects PERSON
-    ↓
-Stops
-    ↓
-Checks lying/standing
-    ↓
-Navigates to evacuation point
-```
+`obstacle_mapper` loads the reference map once from `/map`, then continuously
+compares each LiDAR point (`/scan`) against it, using the robot pose (`/odom`)
+to place points on the grid. When a point lands on a cell that was **free** in
+the reference, the cell is marked as an obstacle in a dynamic copy of the map.
+The dynamic map is published on `/updated_map` (1 Hz), and each newly detected
+obstacle triggers an alert on `/new_obstacle`.
 
-### Mission Flow
-
-```
-MISSION START
-      ↓
-Search for GREEN exit marker
-      ↓
-Move toward GREEN
-      ↓
-While moving:
-    • Look for PERSONS
-    • Look for RED obstacles
-      ↓
-If PERSON found:
-    • Mark location
-    • Continue mission
-If RED found:
-    • Avoid obstacle
-    • Continue mission
-If GREEN reached:
-    • Scan surroundings
-    • Find next GREEN
-    • Continue mission
-      ↓
-Repeat until final exit
-```
-
----
-
-## Setup
-
-### Environment
-
-```bash
-cd ~/ros2_lecture_ws
-. 0_env.sh
-Singularity> . /entrypoint.sh
-colcon build --symlink-install
-source install/setup.bash
-```
-
-### Install Dependencies
-
-```bash
-# Install OpenCV
-sudo apt update
-sudo apt install python3-opencv
-
-# Install cv_bridge
-sudo apt install ros-humble-cv-bridge
-
-# Install navigation packages
-sudo apt install ros-humble-cv-bridge
-
-# Install SLAM toolbox
-sudo apt install ros-humble-slam-toolbox
-```
-
-### 5. Build Workspace
-
-```bash
-cd ~/ros2_ws
-colcon build --symlink-install
-source install/setup.bash
-```
-
----
-
-## 6. Run Commands
-
-### Terminal 1 — Start TurtleBot
-```bash
-ros2 launch turtlebot3_bringup robot.launch.py
-```
-
-### Terminal 2 — Start Camera
-```bash
-ros2 run your_package fake_robot
-# OR actual camera node
-```
-
-### Terminal 3 — Run SLAM
-```bash
-ros2 launch slam_toolbox online_async_launch.py
-```
-
-### Terminal 4 — Run Navigation2
-```bash
-ros2 launch nav2_bringup navigation_launch.py
-```
-
-### Terminal 5 — Run State Machine
-```bash
-ros2 run your_package sm_main
-```
-
----
-
-## 7. View Camera Debug
-
-```bash
-rqt_image_view
-```
-
-Select `/debug_image`. You will see:
-- Person boxes
-- Lying person label
-- Detection visualization
-
----
-
-## Person Detection → OpenCV HOG Detector
-
-This is a machine-learning-based detector, although it's an older classical method rather than a deep neural network.
-
----
-
-## Dynamic Obstacle Map (`obstacle_mapper`)
-
-Standalone node added on top of the tested version. It runs **in parallel**
-with the state machine and does **not** change the robot behaviour — it only
-observes the LiDAR and publishes an updated map.
-
-### What it does
-
-- Loads the reference map once from `/map`.
-- Continuously compares `/scan` (LiDAR) against the reference, using `/odom`
-  to place each beam on the grid.
-- When a LiDAR point lands on a cell that was **free** in the reference, it
-  marks that cell as an obstacle in a dynamic copy of the map.
-- Publishes the dynamic map on `/updated_map` (1 Hz) and a short alert on
-  `/new_obstacle` for every newly detected obstacle.
+It is fully decoupled from the state machine, so it can be tested on its own
+with just the robot bringup and the navigation stack running.
 
 ### Topics
 
@@ -169,16 +42,43 @@ observes the LiDAR and publishes an updated map.
 | Pub       | `/updated_map`  | `nav_msgs/OccupancyGrid`  |
 | Pub       | `/new_obstacle` | `std_msgs/String`         |
 
-### Run
+## Build
 
-Start it in its own terminal, alongside the usual stack (TurtleBot, SLAM,
-Navigation2 and the state machine):
+From the workspace, inside the configured environment:
 
 ```bash
-ros2 run competition_pkg obstacle_mapper
+colcon build --symlink-install
+source install/setup.bash
 ```
 
-### Visualise in RViz
+## Run
 
-Add a **Map** display and set its topic to `/updated_map` to see the
-reference map with the newly detected obstacles overlaid.
+Each node runs in its own terminal (environment sourced):
+
+```bash
+ros2 run competition_pkg fakerobot          # camera stub (or use the real camera)
+ros2 run competition_pkg obstacle_mapper    # dynamic obstacle map
+ros2 run competition_pkg sm                 # mission state machine (press ENTER)
+```
+
+The mission needs the TurtleBot3 bringup and `turtlebot3_navigation2` (with a
+saved map) running first. The dynamic obstacle map needs a reference map on
+`/map`, which `turtlebot3_navigation2` provides.
+
+## Useful commands
+
+```bash
+ros2 pkg executables competition_pkg        # check entry points
+ros2 topic hz /updated_map                  # dynamic map publishing (~1 Hz)
+ros2 topic echo /new_obstacle               # new-obstacle alerts
+ros2 run yasmin_viewer yasmin_viewer_node   # state machine viewer (http://localhost:8080)
+rqt_image_view                              # camera debug image (/debug_image)
+```
+
+In RViz, add a **Map** display on `/updated_map` (next to `/map`) to see the
+newly detected obstacles overlaid on the reference map.
+
+## Full setup
+
+For the complete step-by-step commissioning (mapping the area, then running the
+mission), see `MISE_EN_SERVICE.md`.
